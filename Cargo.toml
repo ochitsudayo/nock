@@ -1,0 +1,11 @@
+[package]
+name = "rust_clock"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4"
+console = "0.15"
+crossterm = "0.28"
+terminal_size = "0.4"
+ctrlc = "3.4"
