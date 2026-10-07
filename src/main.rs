@@ -26,7 +26,8 @@ fn main() {
     print!("\x1b[?1049h");
     print!("\x1b[2J");
     print!("\x1b[?25l");
-    print!("\x1b[37m");
+
+    let mut color: u8 = 37;
 
     'outer: loop {
         let t = Local::now();
@@ -37,7 +38,7 @@ fn main() {
         let total_h = clock_h + 2;
         let top = height.saturating_sub(total_h) / 2;
 
-        print!("\x1b[2J\x1b[H");
+        print!("\x1b[2J\x1b[H\x1b[{}m", color);
 
         for (i, row) in DIGITS.iter().enumerate() {
             let mut line = String::new();
@@ -62,6 +63,11 @@ fn main() {
                     && k.modifiers.contains(KeyModifiers::CONTROL)
                 {
                     break 'outer;
+                }
+                if let KeyCode::Char(c) = k.code {
+                    if ('1'..='8').contains(&c) {
+                        color = 30 + (c as u8 - b'1');
+                    }
                 }
             }
         }
