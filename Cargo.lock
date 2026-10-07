@@ -279,6 +279,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nock"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "console",
+ "crossterm",
+ "ctrlc",
+ "terminal_size",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -362,17 +373,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "rust_clock"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "console",
- "crossterm",
- "ctrlc",
- "terminal_size",
 ]
 
 [[package]]

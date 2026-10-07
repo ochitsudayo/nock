@@ -27,11 +27,30 @@ fn main() {
     print!("\x1b[2J");
     print!("\x1b[?25l");
 
+    let mut show_seconds = false;
     let mut color: u8 = 37;
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(pos) = args.iter().position(|a| a == "-c") {
+        if let Some(val) = args.get(pos + 1) {
+            if let Ok(n) = val.parse::<u8>() {
+                if (1..=8).contains(&n) {
+                    color = 30 + (n - 1);
+                }
+            }
+        }
+    }
+
+    if args.iter().any(|a| a == "-s") {
+        show_seconds = true;
+    }
 
     'outer: loop {
         let t = Local::now();
-        let time = t.format("%H:%M:%S").to_string();
+        let time = if show_seconds {
+            t.format("%H:%M:%S").to_string()
+        } else {
+            t.format("%H:%M").to_string()
+        };
         let (width, height) = term_size();
 
         let clock_h = DIGITS.len();
@@ -67,6 +86,9 @@ fn main() {
                 if let KeyCode::Char(c) = k.code {
                     if ('1'..='8').contains(&c) {
                         color = 30 + (c as u8 - b'1');
+                    }
+                    if c == 's' {
+                        show_seconds = !show_seconds;
                     }
                 }
             }
