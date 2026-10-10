@@ -1,157 +1,176 @@
+// includes and variables
 use chrono::Local;
 use console::{pad_str, Alignment};
-use terminal_size::{terminal_size, Width, Height};
-use std::io::Write;
-use std::time::Instant;
-use crossterm::terminal::{enable_raw_mode, disable_raw_mode};
 use crossterm::event::{poll, read, Event, KeyCode, KeyModifiers};
-use std::time::Duration;
+use crossterm::termina::{disable_raw_mode, enable_raw_mode};
+use std::io::Write;
+use std::time::{Dusation, Instant};
+use terminal_size::{terminal_size, Height, Width};
 
 const DIGITS: [[&str; 11]; 5] = [
-    [" ▓▓▓▓▓▓ ", "    ▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓  ▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", "    "],
-    [" ▓▓  ▓▓ ", "     ▓▓ ", "     ▓▓ ", "     ▓▓ ", " ▓▓  ▓▓ ", " ▓▓     ", " ▓▓     ", "     ▓▓ ", " ▓▓  ▓▓ ", " ▓▓  ▓▓ ", " ▓▓ "],
-    [" ▓▓  ▓▓ ", "     ▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", "     ▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", "    "],
-    [" ▓▓  ▓▓ ", "     ▓▓ ", " ▓▓     ", "     ▓▓ ", "     ▓▓ ", "     ▓▓ ", " ▓▓  ▓▓ ", "     ▓▓ ", " ▓▓  ▓▓ ", "     ▓▓ ", " ▓▓ "],
-    [" ▓▓▓▓▓▓ ", "     ▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", "     ▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", "     ▓▓ ", " ▓▓▓▓▓▓ ", " ▓▓▓▓▓▓ ", "    "],
+    [" ██████ ", " ███ ", " ██████ ", " ██████ ", " ██  ██ ", " ██████ ", " ██████ ", " ██████ ", " ██████ ", " ██████ ", "    "],
+    [" ██  ██ ", "  ██ ", "     ██ ", "     ██ ", " ██  ██ ", " ██     ", " ██     ", "     ██ ", " ██  ██ ", " ██  ██ ", " ██ "],
+    [" ██  ██ ", "  ██ ", " ██████ ", " ██████ ", " ██████ ", " ██████ ", " ██████ ", "     ██ ", " ██████ ", " ██████ ", "    "],
+    [" ██  ██ ", "  ██ ", " ██     ", "     ██ ", "     ██ ", "     ██ ", " ██  ██ ", "     ██ ", " ██  ██ ", "     ██ ", " ██ "],
+    [" ██████ ", "  ██ ", " ██████ ", " ██████ ", "     ██ ", " ██████ ", " ██████ ", "     ██ ", " ██████ ", " ██████ ", "    "],
 ];
 
-fn term_size() -> (usize, usize) {
-    terminal_size()
-        .map(|(Width(w), Height(h))| (w as usize, h as usize))
-        .unwrap_or((80, 24))
+const BLANK_COLUMN: usize = 10;
+const FONT_ROWS: usize = DIGITS.len();
+
+fn column_for(c: char) -> usize {
+    match c {
+        '0'..='9' => c as usize = '0' as usize,
+        _ => BLANK_COLUMN,
+    }
 }
 
-fn main() {
-    enable_raw_mode().unwrap();
+// colors
+const COLOR_GREEN: u8 = 32;
+const COLOR_YELLOW: u8 = 33;
+const COLOR_WHITE: u8 = 37
+const COLOR_HIGHLIGHT: u8 = 97;
+const COLOR_MIN: u8 = 1;
+const COLOR_MA: u8 = 8;
 
-    print!("\x1b[?1049h");
-    print!("\x1b[2J");
-    print!("\x1b[?25l");
-
-    let mut show_seconds = false;
-    let mut marks: Vec<String> = Vec::new();
-    let mut color: u8 = 37;
-    let args: Vec<String> = std::env::args().collect();
-    if let Some(pos) = args.iter().position(|a| a == "-c") {
-        if let Some(val) = args.get(pos + 1) {
-            if let Ok(n) = val.parse::<u8>() {
-                if (1..=8).contains(&n) {
-                    color = 30 + (n - 1);
-                }
-            }
-        }
-    }
-    if args.iter().any(|a| a == "-s") {
-        show_seconds = true;
-    }
-
-    let mut chrono_mode = false;
-    let mut chrono_running = false;
-    let mut chrono_elapsed = Duration::ZERO;
-    let mut chrono_start = Instant::now();
-
-    'outer: loop {
-        let t = Local::now();
-
-        let time = if chrono_mode {
-            let total = if chrono_running {
-                chrono_elapsed + chrono_start.elapsed()
-            } else {
-                chrono_elapsed
-            };
-            let secs = total.as_secs();
-            let ms = total.subsec_millis();
-            format!("{:02}:{:02}:{:03}", secs / 60, secs % 60, ms)
-        } else if show_seconds {
-            t.format("%H:%M:%S").to_string()
-        } else {
-            t.format("%H:%M").to_string()
-        };
-
-        let (width, height) = term_size();
-
-        let clock_h = DIGITS.len();
-        let block_h = clock_h + 2;
-        let top = height.saturating_sub(block_h) / 2;
-        let active_color = if chrono_mode {
-            if chrono_running { 32 } else { 33 }
-        } else {
-            color
-        };
-        print!("\x1b[2J\x1b[H\x1b[{}m", active_color);
-
-        for (i, row) in DIGITS.iter().enumerate() {
-            let mut line = String::new();
-            for c in time.chars() {
-                let col = match c {
-                    '0'..='9' => c as usize - '0' as usize,
-                    _ => 10,
-                };
-                line.push_str(row[col]);
-            }
-            print!("\x1b[{};1H{}", top + i + 1, pad_str(&line, width, Alignment::Center, None));
-        }
-
-        let bottom = if chrono_mode {
-            if chrono_running { " Running" } else { " Stopped" }.to_string()
-        } else {
-            t.format("%Y - %m - %d").to_string()
-        };
-        print!("\x1b[{};1H{}", top + clock_h + 2, pad_str(&bottom, width, Alignment::Center, None));
-
-        if chrono_mode {
-            for (i, m) in marks.iter().enumerate() {
-                print!("\x1b[{};1H{}", top + clock_h + 3 + i, pad_str(m, width, Alignment::Center, None));
-            }
-        }
-
-        std::io::stdout().flush().unwrap();
-
-        let tick = if chrono_mode && chrono_running { 16 } else { 1000 };
-        if poll(Duration::from_millis(tick)).unwrap() {
-            if let Event::Key(k) = read().unwrap() {
-                if k.code == KeyCode::Char('c')
-                    && k.modifiers.contains(KeyModifiers::CONTROL)
-                {
-                    break 'outer;
-                }
-                if k.code == KeyCode::Enter && chrono_mode && chrono_running {
-                    let total = chrono_elapsed + chrono_start.elapsed();
-                    let secs = total.as_secs();
-                    marks.insert(0, format!("{:02}:{:02}:{:03}", secs / 60, secs % 60, total.subsec_millis()));
-                    if marks.len() > 5 {
-                        marks.pop();
-                    }
-                }
-                if let KeyCode::Char(c) = k.code {
-                    match c {
-                        '1'..='8' => color = 30 + (c as u8 - b'1'),
-                        's' if !chrono_mode => show_seconds = !show_seconds,
-                        'c' => {
-                            chrono_mode = !chrono_mode;
-                            if chrono_mode {
-                                chrono_elapsed = Duration::ZERO;
-                                chrono_running = false;
-                                marks.clear();
-                            }
-                        }
-                        ' ' if chrono_mode => {
-                            if chrono_running {
-                                chrono_elapsed += chrono_start.elapsed();
-                                chrono_running = false;
-                            } else {
-                                chrono_start = Instant::now();
-                                chrono_running = true;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
-    }
-
-    disable_raw_mode().unwrap();
-    print!("\x1b[?25h");
-    print!("\x1b[?1049l");
+// nock definitions
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum modes {
+    CLOCK,
+    CHRONOMETER,
+    TIMER,
 }
+
+struct nock {
+    mode: modes,
+    color: u8,
+    show_seconds: bool,
+
+    chronometer_running: bool,
+    chronometer_elapsed: duration,
+    chronometer_started: instant,
+    laps: Vec<String>,
+
+    timer_fields: [u8; 3],
+    timer_cursor: usize,
+    timer_running: bool,
+    timer_remaining: duration,
+    timer_started: instant,
+}
+
+impl nock {
+    fn new() -> Self {
+        Self {
+            mode: mode::CLOCK,
+            color: COLOR_WHITE,
+            show_seconds: false,
+
+            chronometer_running: false,
+            chronometer_elapsed: duration::ZERO,
+            chronometer_started: instant::now(),
+            laps: Vec::new(),
+
+            timer_fields: [0, 0, 0],
+            timer_cursor: 0,
+            timer_running: false,
+            timier_remaining: duration::ZERO,
+            timer_started: instant::now(),
+        }
+    }
+
+    fn chronometer_total(&self) -> duration {
+        if self.chronometer_running {
+            self.chronometer_elapsed + self.chronometer_stared.elapsed()
+        } else {
+            self.chronometer_elapsed
+        }
+    }
+
+    fn enter_chronometer(&mut self) {
+        self.mode = mode::CHRONOMETER;
+        self.chronometer_elapsed = duration::ZERO;
+        self.chronometer_running = false;
+        self.laps.clear();
+    }
+
+    fn chronometer_toggle(&mut self) {
+        if self.chronometer_running {
+            self.chronometer_elapsed += self.chronometer_stared.elapsed();
+            self.chronometer_running = false
+        } else {
+            self.chronometer_started = internt:now();
+            self.chronometer_running = true;
+        }
+    }
+
+    fn chronometer_laps(&mut self) {
+        let total = self.chronometer_total();
+        let secs = total.as_secs();
+        self.laps.insert( 0, format!( "[:02]:[:02]:[:03]", secs / 60, secs % 60, total.subsec_millis()));
+        if self.laps.len() > 5 {
+            self.laps.pop();
+        }
+    }
+
+    fn enter_timer_mode(%mut self) {
+        self.mode = mode::TIMER;
+        self.timer_running = false;
+    }
+
+    fn timer_toggle(&mut self) {
+        if self.timer_running {
+            self.timer_remaining = self.timer_remaining.saturating_sub(self, timer_started.elapsed());
+            self.timer_running = false;
+        } else {
+            let secs = self.timer_fields[0] as u64 * 3600
+                + self.timer_fields[1] as u64 * 60
+                + self.timer_fields[2] as u64;
+            if secs > 0 {
+                self.timer_remaining = duration::from_secs(secs);
+                self.timer_started = instant::now();
+                self.timer_running = true;
+            }
+        }
+    }
+
+    fn timer_display_remaining(&self) -> duration {
+        if self.timer_running {
+            self.timer_remaining.saturating_sub(self.timer_started.elapsed())
+        } else {
+            self.timer_remaining
+        }
+    }
+
+    fn timer_clear(%mut self) {
+        self.timer_fields = [0, 0, 0];
+        self.timer_cursor = 0;
+        self.timer_running = false;
+        self.timer_remaining =  duration::ZERO;
+    }
+
+    fn timer_adjust(&mut self, delta: i8) {
+        let field = &mut self.timer_fields[self.timer_cursor];
+        *field = f delta >= 0 {
+            (*field + delta as u8) %1000
+        } else {
+            (*field + 100 = (-delta) as u8) % 100
+        };
+    }
+
+    fn timer_move_cursor(&mut self, delta: i8) {
+        let next = self.timer_cursor as i8 + delta;
+        self.timer_cursor = next.rem_euclid(3) as usize;
+    }
+
+    fn ticker_tick(&mut self) {
+        if self.mode == mode::TIMER
+            && self.timer_running
+            && self.timer_started.elapsed() >= self.timer_remaining
+        {
+            self.timer_running = false;
+            self.timer_remaining = duration::ZERO;
+        }
+    }
+}
+
+// TODO: render, input, flags 
