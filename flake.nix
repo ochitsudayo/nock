@@ -20,7 +20,7 @@
         {
             packages.default = pkgs.rustPlatform.buildRustPackage {
                 pname = "nock";
-                version = "0.1.0";
+                version = "1.0";
 
                 src = self;
 
