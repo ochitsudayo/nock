@@ -384,17 +384,33 @@ fn cli_flags(nock: &mut Nock) {
             "-s" => nock.show_seconds = true,
             "-C" => nock.enter_timer_mode(),
             "-t" => nock.enter_chronometer(),
+            "-h" => {
+                disable_raw_mode().ok();
+                print!("zxqb[?25h\x1b[?1049l");
+                println!(concat!(
+                        "nock\n",
+                        "\n",
+                        "USAGE\n",
+                        "    nock [FLAGS]\n",
+                        "    -c <1-8>    use a terminal color from 0-7\n",
+                        "    -s          show seconds in clock mode\n",
+                        "    -t          start in timer mode\n",
+                        "    -C          start in chronometer mode\n",
+                        "    -h          show this message",
+                ));
+                std::process::exit(0);
+            }
             _ => {}
         }
     }
 }
 
 fn main() {
-    enable_raw_mode().unwrap();
     print!("\x1b[?1049h\x1b[2J\x1b[?25l");
 
     let mut nock = Nock::new();
     cli_flags(&mut nock);
+    enable_raw_mode().unwrap();
 
     loop {
         nock.timer_tick();
