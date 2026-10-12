@@ -382,6 +382,8 @@ fn cli_flags(nock: &mut Nock) {
                 }
             }
             "-s" => nock.show_seconds = true,
+            "-C" => nock.enter_timer_mode(),
+            "-t" => nock.enter_chronometer(),
             _ => {}
         }
     }
