@@ -375,18 +375,27 @@ fn cli_flags(nock: &mut Nock) {
     while let Some(arg) = iter.next() {
         match arg.as_str() {
             "-c" => {
-                if let Some(n) = iter.next().and_then(|v| v.parse::<u8>().ok()) {
-                    if (COLOR_MIN..=COLOR_MAX).contains(&n) {
+                let val = iter.next();
+                let parsed = val.and_then(|v| v.parse::<u8>().ok());
+                match parsed {
+                    Some(n) if (COLOR_MIN..=COLOR_MAX).contains(&n) => {
                         nock.color = 30 + (n - 1);
                     }
+                    _ => {
+                        eprintln!(
+                            "nock: -c requires a number between {} and {}",
+                            COLOR_MIN, COLOR_MAX
+                        );
+                        eprintln!("Try 'nock -h' for more information.");
+                        std::process::exit(1);
+                    }
                 }
-            }
-            "-s" => nock.show_seconds = true,
-            "-C" => nock.enter_timer_mode(),
-            "-t" => nock.enter_chronometer(),
+            }"-s" => nock.show_seconds = true,
+            "-t" => nock.enter_timer_mode(),
+            "-C" => nock.enter_chronometer(),
             "-h" => {
                 disable_raw_mode().ok();
-                print!("zxqb[?25h\x1b[?1049l");
+                print!("\x1b[?25h\x1b[?1049l");
                 println!(concat!(
                         "nock\n",
                         "\n",
@@ -400,17 +409,21 @@ fn cli_flags(nock: &mut Nock) {
                 ));
                 std::process::exit(0);
             }
-            _ => {}
+            _ => {
+                eprintln!("nock: unknown argument '{}'", arg);
+                eprintln!("Try 'nock -h' for more information.");
+                std::process::exit(1);
+            }
         }
     }
 }
 
 fn main() {
-    print!("\x1b[?1049h\x1b[2J\x1b[?25l");
-
     let mut nock = Nock::new();
     cli_flags(&mut nock);
+
     enable_raw_mode().unwrap();
+    print!("\x1b[?1049h\x1b[2J\x1b[?25l");
 
     loop {
         nock.timer_tick();
