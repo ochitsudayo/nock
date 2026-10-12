@@ -24,10 +24,11 @@ fn column_for(c: char) -> usize {
     }
 }
 
-const COLOR_GREEN: u8 = 32;
 const COLOR_YELLOW: u8 = 33;
+const COLOR_YELLOW_BRIGHT: u8 = 93;
 const COLOR_WHITE: u8 = 37;
-const COLOR_HIGHLIGHT: u8 = 97;
+const COLOR_MAGENTA: u8 = 35;
+const COLOR_MAGENTA_BRIGHT: u8 = 95;
 const COLOR_MIN: u8 = 1;
 const COLOR_MAX: u8 = 8;
 
@@ -73,6 +74,7 @@ impl Nock {
         }
     }
 
+    // chronometer
     fn chronometer_total(&self) -> Duration {
         if self.chronometer_running {
             self.chronometer_elapsed + self.chronometer_started.elapsed()
@@ -107,6 +109,7 @@ impl Nock {
         }
     }
 
+    // timer
     fn enter_timer_mode(&mut self) {
         self.mode = Mode::Timer;
         self.timer_running = false;
@@ -164,14 +167,12 @@ impl Nock {
         {
             self.timer_running = false;
             self.timer_remaining = Duration::ZERO;
+            std::process::Command::new("notify-send")
+                .args(["Nock", "Time's over"])
+                .spawn()
+                .ok();
         }
     }
-}
-
-fn term_size() -> (usize, usize) {
-    terminal_size()
-        .map(|(Width(w), Height(h))| (w as usize, h as usize))
-        .unwrap_or((80, 24))
 }
 
 fn timer_highlight(nock: &Nock) -> Option<(usize, usize)> {
@@ -181,6 +182,13 @@ fn timer_highlight(nock: &Nock) -> Option<(usize, usize)> {
     } else {
         None
     }
+}
+
+// terminal and application
+fn term_size() -> (usize, usize) {
+    terminal_size()
+        .map(|(Width(w), Height(h))| (w as usize, h as usize))
+        .unwrap_or((80, 24))
 }
 
 fn nock_display(nock: &Nock) -> String {
@@ -218,13 +226,13 @@ fn clock_undertext(nock: &Nock) -> String {
 }
 
 fn running_text(running: bool) -> String {
-    if running { " Running" } else { " Stopped" }.to_string()
+    if running { " Running" } else { " Stopped" }.to_string()
 }
 
 fn clock_color(nock: &Nock) -> u8 {
     match nock.mode {
-        Mode::Chrono => if nock.chronometer_running { COLOR_GREEN } else { COLOR_YELLOW },
-        Mode::Timer => if nock.timer_running { COLOR_GREEN } else { COLOR_YELLOW },
+        Mode::Chrono => if nock.chronometer_running { COLOR_YELLOW_BRIGHT } else { COLOR_YELLOW },
+        Mode::Timer => if nock.timer_running { COLOR_MAGENTA_BRIGHT } else { COLOR_MAGENTA },
         Mode::Clock => nock.color,
     }
 }
@@ -242,7 +250,7 @@ fn render_row(
             .map(|(lo, hi)| i >= lo && i <= hi)
             .unwrap_or(false);
         if highlighted {
-            line.push_str(&format!("\x1b[{}m{}", COLOR_HIGHLIGHT, cell));
+            line.push_str(&format!("\x1b[{}m{}", COLOR_MAGENTA_BRIGHT, cell));
             line.push_str(&format!("\x1b[{}m", base_color));
         } else {
             line.push_str(cell);
@@ -346,8 +354,8 @@ fn handle_chronometer_key(nock: &mut Nock, code: KeyCode) {
 fn handle_timer_key(nock: &mut Nock, code: KeyCode) {
     if !nock.timer_running {
         match code {
-            KeyCode::Char('k') | KeyCode::Down => nock.timer_adjust(1),
-            KeyCode::Char('j') | KeyCode::Up => nock.timer_adjust(-1),
+            KeyCode::Char('k') | KeyCode::Up => nock.timer_adjust(1),
+            KeyCode::Char('j') | KeyCode::Down => nock.timer_adjust(-1),
             KeyCode::Char('h') | KeyCode::Left => nock.timer_move_cursor(-1),
             KeyCode::Char('l') | KeyCode::Right => nock.timer_move_cursor(1),
             _ => {}
