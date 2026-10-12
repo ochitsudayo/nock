@@ -14,6 +14,7 @@ const DIGITS: [[&str; 11]; 5] = [
     [" ██████ ", "  ██ ", " ██████ ", " ██████ ", "     ██ ", " ██████ ", " ██████ ", "     ██ ", " ██████ ", " ██████ ", "    "],
 ];
 
+const NOCK_VERSION: &str = "1.0";
 const BLANK_COLUMN: usize = 10;
 const FONT_ROWS: usize = DIGITS.len();
 
@@ -393,6 +394,10 @@ fn cli_flags(nock: &mut Nock) {
             }"-s" => nock.show_seconds = true,
             "-t" => nock.enter_timer_mode(),
             "-C" => nock.enter_chronometer(),
+            "-v" => {
+                println!("nock {}", NOCK_VERSION);
+                std::process::exit(0);
+            }
             "-h" => {
                 disable_raw_mode().ok();
                 print!("\x1b[?25h\x1b[?1049l");
@@ -405,6 +410,7 @@ fn cli_flags(nock: &mut Nock) {
                         "    -s          show seconds in clock mode\n",
                         "    -t          start in timer mode\n",
                         "    -C          start in chronometer mode\n",
+                        "    -v          show nock version\n",
                         "    -h          show this message",
                 ));
                 std::process::exit(0);
