@@ -58,6 +58,7 @@ You can run nock without any argument and press keys while running to toggle fun
 | t | toggle timer mode |
 | space | start/pause/unpause both chronometer and timer |
 | <1-8> | changes color (uses first 8 terminal colors) |
+| up/down/left/right <br> hjkl | navigate on timer mode |
 | ctrl + c | exit nock |
 
 You can also use flags to customize nock's launch
