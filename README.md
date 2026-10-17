@@ -10,7 +10,7 @@
 
 #### Build from source
 ```sh
-git clone https://github.com/ochitsudayo/nock.git
+git clone https://github.com/2besita/nock.git
 cd nock
 cargo build --release
 ```
@@ -20,7 +20,7 @@ then put the binary in your desired path
 #### Running automatically with nix
 
 ```sh
-nix run github:ochitsudayo/nock
+nix run github:2besita/nock
 ```
 
 #### Flake
@@ -29,7 +29,7 @@ First, add this to your flake inputs:
 
 ```nix
 yum = {
-    url = "github:ochitsudayo/nock";
+    url = "github:2besita/nock";
     inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
